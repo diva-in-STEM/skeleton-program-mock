@@ -1,4 +1,5 @@
 import datetime
+import math
 
 BLANK = "   "
 while True:
@@ -17,6 +18,7 @@ MAX_TIME = 50
 TIME_IDLE = 0
 TIME_BUSY = 1
 TIME_SERVING = 2
+BUYERS_SERVED = 3
 
 ARRIVAL_TIME = 0
 ITEMS = 1
@@ -38,7 +40,7 @@ class Q_Node:
 
 def ResetDataStructures():
   Stats = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  Tills = [[0, 0, 0] for i in range(MAX_TILLS + 1)]
+  Tills = [[0, 0, 0, 0] for i in range(MAX_TILLS + 1)]
   BuyerQ = [Q_Node() for i in range(MAX_Q_SIZE)]
   return Stats, Tills, BuyerQ
 
@@ -144,6 +146,7 @@ def FindFreeTill(Tills, NoOfTills):
     if Tills[TillNumber][TIME_SERVING] == 0:
       FoundFreeTill = True
   if FoundFreeTill:
+    Tills[TillNumber][BUYERS_SERVED] += 1
     return TillNumber
   else:
     return -1
@@ -226,29 +229,19 @@ def TillsBusy(Tills, NoOfTills):
     TillNumber += 1
   return IsBusy
 
-def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills):
+def OutputStats(Tills, NoOfTills):
   OutputFile = "sim_output.txt"
-  AverageWaitingTime = round(Stats[TOTAL_WAIT] / BuyerNumber, 1)
-  if Stats[TOTAL_Q_OCCURRENCE] > 0:
-    AverageQLength = round(Stats[TOTAL_Q] / Stats[TOTAL_Q_OCCURRENCE], 2)
-  else:
-    AverageQLength = "Not available"
   with open(OutputFile, 'a') as f:
-    f.write(f"Simulation from {datetime.datetime.now().strftime("%d/%m/%y, %H:%M")}:")
-    f.write(f"""
-==============================
-The maximum queue length was: {Stats[MAX_Q_LENGTH]} buyers
-The maximum waiting time was: {Stats[MAX_WAIT]} time units
-{BuyerNumber} buyers arrived during {SimulationTime} time units
-The average waiting time was: {AverageWaitingTime} time units
-The average queue length was: {AverageQLength} buyers
-{Stats[TOTAL_NO_WAIT]} buyers did not need to queue
-==============================
-With settings:
-Number of tills: {NoOfTills}
-Simulation time: {SimulationTime} time units
-==============================\n
-""")
+    f.write(f"Simulation from {datetime.datetime.now().strftime("%d/%m/%y, %H:%M")}:\n============================\n\n")
+    TillNumber = 0
+    while TillNumber <= NoOfTills:
+      Till = Tills[TillNumber]
+      TotalBuyers = Till[BUYERS_SERVED]
+      PercentTimeBusy = math.floor((Till[TIME_BUSY]/MAX_TIME) * 100)
+      PercentTimeIdle = math.floor((Till[TIME_IDLE]/MAX_TIME) * 100)
+      f.write(f"Till {TillNumber}:\nTotal Buyers: {TotalBuyers}\nPercent Time Busy: {PercentTimeBusy}%\nPercent Time Idle: {PercentTimeIdle}\n\n")
+      TillNumber += 1
+    f.write("============================\n\n")
 
 def QueueSimulator():
   BuyerNumber = 0
@@ -280,7 +273,7 @@ def QueueSimulator():
     Tills = UpdateTills(Tills, NoOfTills)
     OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
     ExtraTime += 1
-  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills)
+  OutputStats(Tills, NoOfTills)
 
 if __name__ == "__main__":
   QueueSimulator()
