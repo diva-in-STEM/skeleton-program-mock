@@ -34,6 +34,7 @@ class Q_Node:
     self.BuyerID = BLANK
     self.WaitingTime = 0
     self.ItemsInBasket = 0
+    self.Priority = 0
 
 def ResetDataStructures():
   Stats = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -84,7 +85,9 @@ def ReadInSimulationData():
     Count += 1
     try:
       Data[Count][ARRIVAL_TIME] = int(DataString[0])
-      Data[Count][ITEMS] = int(DataString[2:])
+      
+      ItemsInBasket = int(DataString[2:])
+      Data[Count][ITEMS] =  ItemsInBasket
     except:
       print(f"Invalid data type in simulation data file on line {Count}!")
       exit()
@@ -98,11 +101,22 @@ def OutputHeading():
   print("     enters | serve      time  | num- idle busy ser- | Buyer Wait Items")
   print("     (items)| buyer            | ber            ving | ID    time in")
   print("            |                  |                     |            basket")
- 
+
 def BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber):
   ItemsInBasket = Data[BuyerNumber][ITEMS]
   BuyerQ[QLength].BuyerID = f"B{BuyerNumber}"
   BuyerQ[QLength].ItemsInBasket  = ItemsInBasket
+  if ItemsInBasket > 15:
+    queued = False
+    while not queued:
+      pos = QLength
+      if pos == 0:
+        queued = True
+      elif BuyerQ[pos - 1].ItemsInBasket <= 15:
+        BuyerQ[pos - 1], BuyerQ[pos] = BuyerQ[pos], BuyerQ[pos - 1]
+      else:
+        queued = True
+        
   QLength += 1
   return BuyerQ, QLength
 
@@ -149,7 +163,7 @@ def UpdateStats(Stats, WaitingTime):
 def CalculateServingTime(Tills, ThisTill, NoOfItems):
   ServingTime = (NoOfItems // TILL_SPEED) + 1
   Tills[ThisTill][TIME_SERVING] = ServingTime
-  print(f"{ThisTill:>6d}{ServingTime:>6d}")
+  print(f"{ThisTill:>5d}{ServingTime:>5d}")
   return Tills
 
 def IncrementTimeWaiting(BuyerQ, QLength):
@@ -168,11 +182,11 @@ def UpdateTills(Tills, NoOfTills):
 
 def OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength):
   for i in range(1, NoOfTills + 1):
-    print(f"{i:>36d}{Tills[i][TIME_IDLE]:>5d}{Tills[i][TIME_BUSY]:>5d}{Tills[i][TIME_SERVING]:>6d}")
-  print("                                                    ** Start of queue **")
+    print(f"{i:>34d}{Tills[i][TIME_IDLE]:>6d}{Tills[i][TIME_BUSY]:>6d}{Tills[i][TIME_SERVING]:>6d}")
+  print("                                                       ** Start of queue **")
   for i in range(QLength):
-    print(f"{BuyerQ[i].BuyerID:>57s}{BuyerQ[i].WaitingTime:>7d}{BuyerQ[i].ItemsInBasket:>6d}")
-  print("                                                    *** End of queue ***")
+    print(f"{BuyerQ[i].BuyerID:>57s}{BuyerQ[i].WaitingTime:>17d}{BuyerQ[i].ItemsInBasket:>6d}")
+  print("                                                       *** End of queue ***")
   print("------------------------------------------------------------------------")
 
 def Serving(Tills, NoOfTills, BuyerQ, QLength, Stats):
@@ -222,7 +236,7 @@ The average queue length was: {AverageQLength} buyers
 With settings:
 Number of tills: {NoOfTills}
 Simulation time: {SimulationTime} time units
-==============================
+==============================\n
 """)
 
 def QueueSimulator():
