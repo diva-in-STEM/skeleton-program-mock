@@ -1,4 +1,5 @@
 import datetime
+import os
 
 BLANK = "   "
 while True:
@@ -35,6 +36,16 @@ class Q_Node:
     self.WaitingTime = 0
     self.ItemsInBasket = 0
     self.Priority = 0
+
+FileNames = []
+
+def getDataFiles():
+  for fname in os.listdir():
+    if fname.__contains__("SimulationData") and fname.__contains__(".txt"):
+      FileNames.append(fname)
+
+getDataFiles()
+print(FileNames)
 
 def ResetDataStructures():
   Stats = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -76,11 +87,11 @@ def ChangeSettings():
         print("Must be an integer")
   return SimulationTime, NoOfTills
 
-def ReadInSimulationData():
+def ReadInSimulationData(FileName):
   Data = [[0, 0] for i in range(MAX_TIME + 1)]
 
   try: 
-    FileIn = open("SimulationData.txt", 'r')
+    FileIn = open(FileName, 'r')
     firstChar = FileIn.read(1)
     if not firstChar:
       exit()
@@ -231,7 +242,7 @@ def TillsBusy(Tills, NoOfTills):
     TillNumber += 1
   return IsBusy
 
-def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers):
+def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers, message):
   OutputFile = "sim_output.txt"
   AverageWaitingTime = round(Stats[TOTAL_WAIT] / BuyerNumber, 1)
   if Stats[TOTAL_Q_OCCURRENCE] > 0:
@@ -241,7 +252,7 @@ def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalI
   with open(OutputFile, 'a') as f:
     f.write(f"Simulation from {datetime.datetime.now().strftime("%d/%m/%y, %H:%M")}:")
     f.write(f"""
-==============================
+============================== {message}
 The maximum queue length was: {Stats[MAX_Q_LENGTH]} buyers
 The maximum waiting time was: {Stats[MAX_WAIT]} time units
 {BuyerNumber} buyers arrived during {SimulationTime} time units
@@ -257,12 +268,8 @@ Simulation time: {SimulationTime} time units
 ==============================\n
 """)
 
-def QueueSimulator():
-  BuyerNumber = 0
-  QLength = 0
-  Stats, Tills, BuyerQ = ResetDataStructures()
-  SimulationTime, NoOfTills = ChangeSettings()
-  Data = ReadInSimulationData()
+def QueueSimulator(FileName, BuyerNumber, QLength, Stats, Tills, BuyerQ, SimulationTime, NoOfTills):
+  Data = ReadInSimulationData(FileName)
   OutputHeading()
   Turnaways = 0
   TotalItemsSold = 0
@@ -290,8 +297,46 @@ def QueueSimulator():
     Tills = UpdateTills(Tills, NoOfTills)
     OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
     ExtraTime += 1
-  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers)
+  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers, "")
+  return Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers
 
 if __name__ == "__main__":
-  QueueSimulator()
+  StartBuyerNumber = 0
+  StartQLength = 0
+  StartStats, StartTills, StartBuyerQ = ResetDataStructures()
+  StartSimulationTime, StartNoOfTills = ChangeSettings()
+
+  avgStats = [0] * 10
+  avgBuyerNumber = 0
+  avgSimulationTime = 0
+  avgNoOfTills = 0
+  avgTurnaways = 0
+  avgTotalItemsSold = 0
+  avgTotalBuyers = 0
+
+  for FileName in FileNames:
+    Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers = QueueSimulator(
+      FileName, StartBuyerNumber, StartQLength, StartStats, StartTills, StartBuyerQ, StartSimulationTime, StartNoOfTills
+    )
+    avgStats = [x + y for x, y in zip(avgStats, Stats)]
+    avgBuyerNumber += BuyerNumber
+    avgSimulationTime += SimulationTime
+    avgNoOfTills = NoOfTills
+    avgTurnaways += Turnaways
+    avgTotalItemsSold += TotalItemsSold
+    avgTotalBuyers += TotalBuyers
+
+  totalSimulations = len(FileNames)
+
+  avgStats = [round(x / totalSimulations, 2) for x in avgStats]
+  avgBuyerNumber = round(avgBuyerNumber / totalSimulations, 2)
+  avgSimulationTime = round(avgSimulationTime / totalSimulations, 2)
+  avgTurnaways = round(avgTurnaways / totalSimulations, 2)
+  avgTotalItemsSold = round(avgTotalItemsSold / totalSimulations, 2)
+  avgTotalBuyers = round(avgTotalBuyers / totalSimulations, 2)
+
+  OutputStats(avgStats, avgBuyerNumber, avgSimulationTime, avgNoOfTills, avgTurnaways, avgTotalItemsSold, avgTotalBuyers,
+              f"Average of last {totalSimulations} simulations")
+
   input("Press Enter to finish")
+
