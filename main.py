@@ -64,11 +64,16 @@ def ChangeSettings():
 
 def ReadInSimulationData():
   Data = [[0, 0] for i in range(MAX_TIME + 1)]
+
   try: 
     FileIn = open("SimulationData.txt", 'r')
+    firstChar = FileIn.read(1)
+    if not firstChar:
+      exit()
   except:
-    print("Unable to open simulation data file!")
+    print("Unable to open simulation data file or it was empty!")
     exit()
+
   DataString = FileIn.readline()
   Count = 0
   while DataString != "" and Count < MAX_TIME:
