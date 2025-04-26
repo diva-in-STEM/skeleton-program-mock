@@ -1,3 +1,5 @@
+import datetime
+
 BLANK = "   "
 while True:
   try:
@@ -70,6 +72,8 @@ def ReadInSimulationData():
     firstChar = FileIn.read(1)
     if not firstChar:
       exit()
+
+    FileIn.seek(0)
   except:
     print("Unable to open simulation data file or it was empty!")
     exit()
@@ -197,18 +201,29 @@ def TillsBusy(Tills, NoOfTills):
     TillNumber += 1
   return IsBusy
 
-def OutputStats(Stats, BuyerNumber, SimulationTime):
-  print("The simulation statistics are:")
-  print("==============================")
-  print(f"The maximum queue length was: {Stats[MAX_Q_LENGTH]} buyers")
-  print(f"The maximum waiting time was: {Stats[MAX_WAIT]} time units")
-  print(f"{BuyerNumber} buyers arrived during {SimulationTime} time units")
+def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills):
+  OutputFile = "sim_output.txt"
   AverageWaitingTime = round(Stats[TOTAL_WAIT] / BuyerNumber, 1)
-  print(f"The average waiting time was: {AverageWaitingTime} time units")
   if Stats[TOTAL_Q_OCCURRENCE] > 0:
     AverageQLength = round(Stats[TOTAL_Q] / Stats[TOTAL_Q_OCCURRENCE], 2)
-    print(f"The average queue length was: {AverageQLength} buyers")
-  print(f"{Stats[TOTAL_NO_WAIT]} buyers did not need to queue")
+  else:
+    AverageQLength = "Not available"
+  with open(OutputFile, 'a') as f:
+    f.write(f"Simulation from {datetime.datetime.now().strftime("%d/%m/%y, %H:%M")}:")
+    f.write(f"""
+==============================
+The maximum queue length was: {Stats[MAX_Q_LENGTH]} buyers
+The maximum waiting time was: {Stats[MAX_WAIT]} time units
+{BuyerNumber} buyers arrived during {SimulationTime} time units
+The average waiting time was: {AverageWaitingTime} time units
+The average queue length was: {AverageQLength} buyers
+{Stats[TOTAL_NO_WAIT]} buyers did not need to queue
+==============================
+With settings:
+Number of tills: {NoOfTills}
+Simulation time: {SimulationTime} time units
+==============================
+""")
 
 def QueueSimulator():
   BuyerNumber = 0
@@ -240,7 +255,7 @@ def QueueSimulator():
     Tills = UpdateTills(Tills, NoOfTills)
     OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
     ExtraTime += 1
-  OutputStats(Stats, BuyerNumber, SimulationTime)
+  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills)
 
 if __name__ == "__main__":
   QueueSimulator()
