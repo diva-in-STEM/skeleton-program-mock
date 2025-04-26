@@ -113,7 +113,7 @@ def OutputHeading():
   print("     (items)| buyer            | ber            ving | ID    time in")
   print("            |                  |                     |            basket")
 
-def BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber):
+def BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber, TotalItemsSold):
   ItemsInBasket = Data[BuyerNumber][ITEMS]
   BuyerQ[QLength].BuyerID = f"B{BuyerNumber}"
   BuyerQ[QLength].ItemsInBasket  = ItemsInBasket
@@ -128,16 +128,18 @@ def BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber):
       else:
         queued = True
           
+  TotalItemsSold += ItemsInBasket
   QLength += 1
-  return BuyerQ, QLength
+  return BuyerQ, QLength, TotalItemsSold
 
-def BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways):
+def BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways, TotalItemsSold, TotalBuyers):
   print(f"  B{BuyerNumber}({Data[BuyerNumber][ITEMS]})")
   if QLength < MAX_Q_SIZE-1:
-    BuyerQ, QLength = BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber)
+    BuyerQ, QLength, TotalItemsSold = BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber, TotalItemsSold)
+    TotalBuyers += 1
   else:
     Turnaways += 1
-  return BuyerQ, QLength, NoOfTills, Stats, Turnaways
+  return BuyerQ, QLength, NoOfTills, Stats, Turnaways, TotalItemsSold, TotalBuyers
 
 def FindFreeTill(Tills, NoOfTills):
   FoundFreeTill = False
@@ -229,7 +231,7 @@ def TillsBusy(Tills, NoOfTills):
     TillNumber += 1
   return IsBusy
 
-def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways):
+def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers):
   OutputFile = "sim_output.txt"
   AverageWaitingTime = round(Stats[TOTAL_WAIT] / BuyerNumber, 1)
   if Stats[TOTAL_Q_OCCURRENCE] > 0:
@@ -247,6 +249,7 @@ The average waiting time was: {AverageWaitingTime} time units
 The average queue length was: {AverageQLength} buyers
 {Stats[TOTAL_NO_WAIT]} buyers did not need to queue
 {Turnaways} buyers were turned away as the queue was full
+Sold an average of {round(TotalItemsSold/TotalBuyers, 2)} items per customer
 ==============================
 With settings:
 Number of tills: {NoOfTills}
@@ -262,13 +265,15 @@ def QueueSimulator():
   Data = ReadInSimulationData()
   OutputHeading()
   Turnaways = 0
+  TotalItemsSold = 0
+  TotalBuyers = 0
   TimeToNextArrival = Data[BuyerNumber + 1][ARRIVAL_TIME]
   for TimeUnit in range(SimulationTime):
     TimeToNextArrival -= 1
     print(f"{TimeUnit:>3d}", end='')
     if TimeToNextArrival == 0:
       BuyerNumber += 1
-      BuyerQ, QLength, NoOfTills, Stats, Turnaways = BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways)
+      BuyerQ, QLength, NoOfTills, Stats, Turnaways, TotalItemsSold, TotalBuyers = BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways, TotalItemsSold, TotalBuyers)
       TimeToNextArrival = Data[BuyerNumber + 1][ARRIVAL_TIME]
     else:
       print()
@@ -285,7 +290,7 @@ def QueueSimulator():
     Tills = UpdateTills(Tills, NoOfTills)
     OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
     ExtraTime += 1
-  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways)
+  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways, TotalItemsSold, TotalBuyers)
 
 if __name__ == "__main__":
   QueueSimulator()
