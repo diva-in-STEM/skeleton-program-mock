@@ -54,15 +54,26 @@ def ChangeSettings():
   Answer = input("Do you wish to change the settings?  Y/N: ")
   if Answer.upper() == 'Y':
     print(f"Maximum simulation time is {MAX_TIME} time units")
-    SimulationTime = int(input("Simulation run time: "))
-    while SimulationTime > MAX_TIME or SimulationTime < 1:
-      print(f"Maximum simulation time is {MAX_TIME} time units")
-      SimulationTime = int(input("Simulation run time: "))
+    while True:
+      try:
+        SimulationTime = int(input("Simulation run time: "))
+        while SimulationTime > MAX_TIME or SimulationTime < 1:
+          print(f"Maximum simulation time is {MAX_TIME} time units")
+          SimulationTime = int(input("Simulation run time: "))
+        break
+      except:
+        print("Must be an integer")
+
     print(f"Maximum number of tills is {MAX_TILLS}")
-    NoOfTills = int(input("Number of tills in use: "))
-    while NoOfTills > MAX_TILLS or NoOfTills < 1:
-      print(f"Maximum number of tills is {MAX_TILLS}")
-      NoOfTills = int(input("Number of tills in use: "))
+    while True:
+      try:
+        NoOfTills = int(input("Number of tills in use: "))
+        while NoOfTills > MAX_TILLS or NoOfTills < 1:
+          print(f"Maximum number of tills is {MAX_TILLS}")
+          NoOfTills = int(input("Number of tills in use: "))
+        break
+      except:
+        print("Must be an integer")
   return SimulationTime, NoOfTills
 
 def ReadInSimulationData():
