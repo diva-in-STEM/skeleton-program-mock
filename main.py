@@ -3,9 +3,9 @@ import datetime
 BLANK = "   "
 while True:
   try:
-    MAX_Q_SIZE = int(input("Enter the maximum queue size (must be an integer >= 5): "))
+    MAX_Q_SIZE = int(input("Enter the maximum queue size (must be a positive integer): "))
     TILL_SPEED = int(input("Enter the till speed (must be an integer > 0): "))
-    if MAX_Q_SIZE >= 5 and TILL_SPEED > 0:
+    if MAX_Q_SIZE >= 1 and TILL_SPEED > 0:
       break
   except:
     print("You must enter an integer value. Try again.")
@@ -127,14 +127,17 @@ def BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber):
         BuyerQ[pos - 1], BuyerQ[pos] = BuyerQ[pos], BuyerQ[pos - 1]
       else:
         queued = True
-        
+          
   QLength += 1
   return BuyerQ, QLength
 
-def BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats):
+def BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways):
   print(f"  B{BuyerNumber}({Data[BuyerNumber][ITEMS]})")
-  BuyerQ, QLength = BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber)
-  return BuyerQ, QLength, NoOfTills, Stats
+  if QLength < MAX_Q_SIZE-1:
+    BuyerQ, QLength = BuyerJoinsQ(Data, BuyerQ, QLength, BuyerNumber)
+  else:
+    Turnaways += 1
+  return BuyerQ, QLength, NoOfTills, Stats, Turnaways
 
 def FindFreeTill(Tills, NoOfTills):
   FoundFreeTill = False
@@ -226,13 +229,13 @@ def TillsBusy(Tills, NoOfTills):
     TillNumber += 1
   return IsBusy
 
-def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills):
+def OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways):
   OutputFile = "sim_output.txt"
   AverageWaitingTime = round(Stats[TOTAL_WAIT] / BuyerNumber, 1)
   if Stats[TOTAL_Q_OCCURRENCE] > 0:
     AverageQLength = round(Stats[TOTAL_Q] / Stats[TOTAL_Q_OCCURRENCE], 2)
   else:
-    AverageQLength = "Not available"
+    AverageQLength = 0
   with open(OutputFile, 'a') as f:
     f.write(f"Simulation from {datetime.datetime.now().strftime("%d/%m/%y, %H:%M")}:")
     f.write(f"""
@@ -243,6 +246,7 @@ The maximum waiting time was: {Stats[MAX_WAIT]} time units
 The average waiting time was: {AverageWaitingTime} time units
 The average queue length was: {AverageQLength} buyers
 {Stats[TOTAL_NO_WAIT]} buyers did not need to queue
+{Turnaways} buyers were turned away as the queue was full
 ==============================
 With settings:
 Number of tills: {NoOfTills}
@@ -257,13 +261,14 @@ def QueueSimulator():
   SimulationTime, NoOfTills = ChangeSettings()
   Data = ReadInSimulationData()
   OutputHeading()
+  Turnaways = 0
   TimeToNextArrival = Data[BuyerNumber + 1][ARRIVAL_TIME]
   for TimeUnit in range(SimulationTime):
     TimeToNextArrival -= 1
     print(f"{TimeUnit:>3d}", end='')
     if TimeToNextArrival == 0:
       BuyerNumber += 1
-      BuyerQ, QLength, NoOfTills, Stats = BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats)
+      BuyerQ, QLength, NoOfTills, Stats, Turnaways = BuyerArrives(Data, BuyerQ, QLength, BuyerNumber, NoOfTills, Stats, Turnaways)
       TimeToNextArrival = Data[BuyerNumber + 1][ARRIVAL_TIME]
     else:
       print()
@@ -280,7 +285,7 @@ def QueueSimulator():
     Tills = UpdateTills(Tills, NoOfTills)
     OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
     ExtraTime += 1
-  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills)
+  OutputStats(Stats, BuyerNumber, SimulationTime, NoOfTills, Turnaways)
 
 if __name__ == "__main__":
   QueueSimulator()
