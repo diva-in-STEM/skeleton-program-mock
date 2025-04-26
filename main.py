@@ -41,7 +41,7 @@ def ChangeSettings():
   print("=================================")
   print()
   Answer = input("Do you wish to change the settings?  Y/N: ")
-  if Answer == 'Y':
+  if Answer.upper() == 'Y':
     print(f"Maximum simulation time is {MAX_TIME} time units")
     SimulationTime = int(input("Simulation run time: "))
     while SimulationTime > MAX_TIME or SimulationTime < 1:
@@ -56,13 +56,21 @@ def ChangeSettings():
 
 def ReadInSimulationData():
   Data = [[0, 0] for i in range(MAX_TIME + 1)]
-  FileIn = open("SimulationData.txt", 'r')
+  try: 
+    FileIn = open("SimulationData.txt", 'r')
+  except:
+    print("Unable to open simulation data file!")
+    exit()
   DataString = FileIn.readline()
   Count = 0
   while DataString != "" and Count < MAX_TIME:
     Count += 1
-    Data[Count][ARRIVAL_TIME] = int(DataString[0])
-    Data[Count][ITEMS] = int(DataString[2:])
+    try:
+      Data[Count][ARRIVAL_TIME] = int(DataString[0])
+      Data[Count][ITEMS] = int(DataString[2:])
+    except:
+      print(f"Invalid data type in simulation data file on line {Count}!")
+      exit()
     DataString = FileIn.readline()
   FileIn.close()
   return Data
