@@ -1,5 +1,13 @@
 BLANK = "   "
-MAX_Q_SIZE = 30
+while True:
+  try:
+    MAX_Q_SIZE = int(input("Enter the maximum queue size (must be an integer >= 5): "))
+    if MAX_Q_SIZE >= 5:
+      break
+  except:
+    print("You must enter an integer value. Try again.")
+  
+
 MAX_TILLS = 5
 MAX_TIME = 50
 TILL_SPEED = 3
