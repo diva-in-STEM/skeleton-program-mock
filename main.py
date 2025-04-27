@@ -1,5 +1,6 @@
 import datetime
 import os
+import random
 
 BLANK = "   "
 while True:
@@ -18,6 +19,8 @@ MAX_TIME = 50
 TIME_IDLE = 0
 TIME_BUSY = 1
 TIME_SERVING = 2
+IS_BROKEN = 3
+REPAIR_TIME = 4
 
 ARRIVAL_TIME = 0
 ITEMS = 1
@@ -29,6 +32,7 @@ TOTAL_WAIT = 2
 TOTAL_Q = 3
 TOTAL_Q_OCCURRENCE = 4
 TOTAL_NO_WAIT = 5
+TOTAL_TILL_BREAKDOWNS = 6
 
 class Q_Node:
   def __init__(self):
@@ -49,7 +53,7 @@ print(FileNames)
 
 def ResetDataStructures():
   Stats = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  Tills = [[0, 0, 0] for i in range(MAX_TILLS + 1)]
+  Tills = [[0, 0, 0, 0, 0] for i in range(MAX_TILLS + 1)]
   BuyerQ = [Q_Node() for i in range(MAX_Q_SIZE)]
   return Stats, Tills, BuyerQ
 
@@ -157,7 +161,7 @@ def FindFreeTill(Tills, NoOfTills):
   TillNumber = 0
   while not FoundFreeTill and TillNumber < NoOfTills:
     TillNumber += 1
-    if Tills[TillNumber][TIME_SERVING] == 0:
+    if Tills[TillNumber][IS_BROKEN] == 0 and Tills[TillNumber][TIME_SERVING] == 0:
       FoundFreeTill = True
   if FoundFreeTill:
     return TillNumber
@@ -193,18 +197,33 @@ def CalculateServingTime(Tills, ThisTill, NoOfItems):
   print(f"{ThisTill:>5d}{ServingTime:>5d}")
   return Tills
 
-def IncrementTimeWaiting(BuyerQ, QLength):
+def IncrementTimeWaiting(BuyerQ, QLength, Tills, Stats):
+  if random.randint(1, 100) <= 5:
+    BrokenTillIndex = random.randint(1, len(Tills) - 1)
+    if Tills[BrokenTillIndex][IS_BROKEN] == 0:
+      Tills[BrokenTillIndex][IS_BROKEN] = 1
+      Tills[BrokenTillIndex][REPAIR_TIME] = random.randint(3, 6)
+      print(f"!! Till {BrokenTillIndex} has broken down! Repair time: {Tills[BrokenTillIndex][4]}")
+      Stats[TOTAL_TILL_BREAKDOWNS] += 1
+  
   for Count in range(QLength):
     BuyerQ[Count].WaitingTime += 1
-  return BuyerQ
+
+  return BuyerQ, Stats
 
 def UpdateTills(Tills, NoOfTills):
-  for TillNumber in range(NoOfTills + 1):
-    if Tills[TillNumber][TIME_SERVING] == 0:
-      Tills[TillNumber][TIME_IDLE] += 1
+  for TillNumber in range(1, NoOfTills + 1):
+    if Tills[TillNumber][IS_BROKEN] == 1:
+      Tills[TillNumber][REPAIR_TIME] -= 1
+      if Tills[TillNumber][REPAIR_TIME] <= 0:
+        Tills[TillNumber][IS_BROKEN] = 0
+        print(f"!! Till {TillNumber} has been repaired and is back in service!")
     else:
-      Tills[TillNumber][TIME_BUSY] += 1
-      Tills[TillNumber][TIME_SERVING] -= 1
+      if Tills[TillNumber][TIME_SERVING] == 0:
+        Tills[TillNumber][TIME_IDLE] += 1
+      else:
+        Tills[TillNumber][TIME_BUSY] += 1
+        Tills[TillNumber][TIME_SERVING] -= 1
   return Tills
 
 def OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength):
@@ -223,13 +242,13 @@ def Serving(Tills, NoOfTills, BuyerQ, QLength, Stats):
     Stats = UpdateStats(Stats, WaitingTime)
     Tills = CalculateServingTime(Tills, TillFree, ItemsInBasket)
     TillFree = FindFreeTill(Tills, NoOfTills)
-  BuyerQ = IncrementTimeWaiting(BuyerQ, QLength)
+  BuyerQ, Stats = IncrementTimeWaiting(BuyerQ, QLength, Tills, Stats)
   Tills = UpdateTills(Tills, NoOfTills)
   if QLength > 0:
     Stats[TOTAL_Q_OCCURRENCE] += 1 
     Stats[TOTAL_Q] += QLength 
   if QLength > Stats[MAX_Q_LENGTH]:
-    Stats[MAX_Q_LENGTH] = QLength 
+    Stats[MAX_Q_LENGTH] = QLength
   OutputTillAndQueueStates(Tills, NoOfTills, BuyerQ, QLength)
   return  Tills, NoOfTills, BuyerQ, QLength, Stats
 
@@ -261,6 +280,7 @@ The average queue length was: {AverageQLength} buyers
 {Stats[TOTAL_NO_WAIT]} buyers did not need to queue
 {Turnaways} buyers were turned away as the queue was full
 Sold an average of {round(TotalItemsSold/TotalBuyers, 2)} items per customer
+Total till breakdowns was: {Stats[TOTAL_TILL_BREAKDOWNS]}
 ==============================
 With settings:
 Number of tills: {NoOfTills}
